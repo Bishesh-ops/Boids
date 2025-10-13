@@ -36,7 +36,7 @@ struct Quadtree {
     capacity: usize,
     points: Vec<Point>,
     divided: bool,
-    // `Box` allocates the children on the heap, preventing infinite size issues.
+    
     northwest: Option<Box<Quadtree>>,
     northeast: Option<Box<Quadtree>>,
     southwest: Option<Box<Quadtree>>,
@@ -216,7 +216,7 @@ impl EventHandler for GameState {
         // Remove points whose lifespan has run out.
         self.trails.retain(|trail| trail.lifespan > 0.0);
 
-        // --- Boids logic (this is the same as before) ---
+        
         let boundary = Rectangle {
             x: width / 2.0,
             y: height / 2.0,
@@ -244,7 +244,7 @@ impl EventHandler for GameState {
                 .filter(|p| boid.position.distance(p.position) > 0.0001)
                 .collect();
 
-            // ... all the separation, alignment, cohesion logic remains here ...
+            
             let mut separation = Vec2::ZERO;
             let mut alignment = Vec2::ZERO;
             let mut cohesion = Vec2::ZERO;
@@ -278,7 +278,7 @@ impl EventHandler for GameState {
                 boid.acceleration += alignment * ALIGNMENT_WEIGHT;
                 boid.acceleration += cohesion * COHESION_WEIGHT;
             }
-            // ... the physics update logic remains here ...
+            
             boid.velocity += boid.acceleration * dt;
             boid.velocity = boid.velocity.clamp_length_max(MAX_SPEED);
             boid.position += boid.velocity * dt;
@@ -302,11 +302,11 @@ impl EventHandler for GameState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
 
-        // --- Draw the trails ---
+        
         let trail_mesh =
             graphics::Mesh::new_circle(ctx, DrawMode::fill(), Vec2::ZERO, 2.0, 0.1, Color::WHITE)?;
         for trail in &self.trails {
-            // Calculate alpha (transparency) based on remaining lifespan
+            
             let alpha = trail.lifespan / TRAIL_LIFESPAN;
             let color = Color::new(1.0, 1.0, 1.0, alpha * 0.5); // Make it faint
             canvas.draw(
@@ -315,7 +315,7 @@ impl EventHandler for GameState {
             );
         }
 
-        // --- Draw the boids (same as before) ---
+
         let boid_mesh = graphics::Mesh::new_polygon(
             ctx,
             DrawMode::fill(),
