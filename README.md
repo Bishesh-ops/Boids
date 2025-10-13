@@ -13,7 +13,6 @@ A 2D flocking simulation built from scratch in Rust with the `ggez` game engine.
     * **Alignment:** Boids steer towards the average heading of local flockmates.
     * **Cohesion:** Boids steer to move toward the average position of local flockmates.
 * **Performance Optimization:** Uses a **Quadtree** data structure to drastically reduce the complexity of neighbor searching from O(n²) to O(n log n), allowing for a large number of boids to run smoothly.
-* **Interactive Emitter:** The flock is attracted to and follows the user's mouse cursor.
 * **Visual Trails:** Each boid leaves a beautiful, faint trail that visualizes the flowing, hypnotic patterns of the flock's movement.
 * **Screen Wrapping:** Boids that exit one side of the screen seamlessly reappear on the opposite side.
 * **Directional Rendering:** Boids are rendered as triangles that are always oriented in the direction of their velocity.
@@ -27,6 +26,7 @@ A 2D flocking simulation built from scratch in Rust with the `ggez` game engine.
 * **Key Crates:**
     * `glam`: For high-performance vector mathematics.
     * `rand`: For random number generation.
+
 
 
 
