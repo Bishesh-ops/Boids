@@ -2,7 +2,7 @@
 
 A 2D flocking simulation built from scratch in Rust with the `ggez` game engine. This project demonstrates emergent behavior by applying a few simple rules to a large number of autonomous agents, or "boids." The system is highly optimized using a Quadtree for efficient neighbor searching, allowing for a large number of boids to be simulated in real-time.
 
-![Boids Simulation GIF](https://i.imgur.com/YX5yXeC.mp4)
+![Boids Simulation GIF](https://i.imgur.com/YX5yXeC.gif)
 
 ---
 
@@ -27,6 +27,7 @@ A 2D flocking simulation built from scratch in Rust with the `ggez` game engine.
 * **Key Crates:**
     * `glam`: For high-performance vector mathematics.
     * `rand`: For random number generation.
+
 
 
 
