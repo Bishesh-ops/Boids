@@ -51,7 +51,10 @@ struct Quadtree {
     capacity: usize,
     points: Vec<Point>,
     divided: bool,
+<<<<<<< HEAD
+=======
     
+>>>>>>> 985c2794029aab605cbc91457c5ebdae0bc40ca7
     northwest: Option<Box<Quadtree>>,
     northeast: Option<Box<Quadtree>>,
     southwest: Option<Box<Quadtree>>,
@@ -267,7 +270,7 @@ impl GameState {
         }
         self.trails.retain(|trail| trail.lifespan > 0.0);
 
-        
+        // Build the Quadtree for this frame to find neighbors efficiently.
         let boundary = Rectangle {
             x: width / 2.0,
             y: height / 2.0,
@@ -299,10 +302,7 @@ impl GameState {
                 .filter(|p| boid.position.distance(p.position) > 0.0001)
                 .collect();
 
-            
-            let mut separation = Vec2::ZERO;
-            let mut alignment = Vec2::ZERO;
-            let mut cohesion = Vec2::ZERO;
+            // Apply the three flocking rules only if there are actual neighbors.
             if !neighbors.is_empty() {
                 let mut separation = Vec2::ZERO;
                 let mut alignment = Vec2::ZERO;
@@ -342,7 +342,8 @@ impl GameState {
                 boid.acceleration += alignment * self.genes.alignment_weight;
                 boid.acceleration += cohesion * self.genes.cohesion_weight;
             }
-            
+
+            // Update physics and handle screen wrapping.
             boid.velocity += boid.acceleration * dt;
             boid.velocity = boid.velocity.clamp_length_max(self.genes.max_speed);
             boid.position += boid.velocity * dt;
@@ -368,11 +369,10 @@ impl GameState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
 
-        
+        // Draw the trails first, so they are behind the boids.
         let trail_mesh =
             graphics::Mesh::new_circle(ctx, DrawMode::fill(), Vec2::ZERO, 2.0, 0.1, Color::WHITE)?;
         for trail in &self.trails {
-            
             let alpha = trail.lifespan / TRAIL_LIFESPAN;
             let color = Color::new(1.0, 1.0, 1.0, alpha * 0.5);
             canvas.draw(
@@ -381,6 +381,7 @@ impl GameState {
             );
         }
 
+        // Draw the boids as triangles.
         let boid_mesh = graphics::Mesh::new_polygon(
             ctx,
             DrawMode::fill(),
