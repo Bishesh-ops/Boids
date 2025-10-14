@@ -51,10 +51,6 @@ struct Quadtree {
     capacity: usize,
     points: Vec<Point>,
     divided: bool,
-<<<<<<< HEAD
-=======
-    
->>>>>>> 985c2794029aab605cbc91457c5ebdae0bc40ca7
     northwest: Option<Box<Quadtree>>,
     northeast: Option<Box<Quadtree>>,
     southwest: Option<Box<Quadtree>>,
