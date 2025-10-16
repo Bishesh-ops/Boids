@@ -243,7 +243,7 @@ impl GameState {
             boids.push(Boid::new(width, height));
         }
         GameState {
-            boids,
+            boids: Vec::new(),
             trails: Vec::new(),
             genes,
         }
@@ -251,6 +251,12 @@ impl GameState {
 
     /// Runs the core simulation logic for one frame.
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        if self.boids.is_empty() {
+            let (width, height) = ctx.gfx.drawable_size();
+            for _ in 0..100 {
+                self.boids.push(Boid::new(width, height));
+            }
+        }
         let dt = ctx.time.delta().as_secs_f32();
         let (width, height) = ctx.gfx.drawable_size();
 
@@ -518,44 +524,44 @@ impl EvolutionManager {
         self.current_individual_index = 0;
         self.active_simulation = GameState::new(ctx, self.population[0].0);
     }
-/// Sets up the initial population for the GA, loading from a file if possible.
-fn new(ctx: &mut Context) -> Self {
-    // Attempt to load the best genes from the last run.
-    let initial_genes = match std::fs::read_to_string("best_genes.json") {
-        Ok(json) => {
-            println!("Loaded best genes from best_genes.json");
-            // If the file is found but parsing fails, fall back to random.
-            serde_json::from_str(&json).unwrap_or_else(|_| {
-                println!("Could not parse best_genes.json, starting fresh.");
+    /// Sets up the initial population for the GA, loading from a file if possible.
+    fn new(ctx: &mut Context) -> Self {
+        // Attempt to load the best genes from the last run.
+        let initial_genes = match std::fs::read_to_string("best_genes.json") {
+            Ok(json) => {
+                println!("Loaded best genes from best_genes.json");
+                // If the file is found but parsing fails, fall back to random.
+                serde_json::from_str(&json).unwrap_or_else(|_| {
+                    println!("Could not parse best_genes.json, starting fresh.");
+                    BoidGenes::new_random()
+                })
+            }
+            Err(_) => {
+                // If the file is not found, start with random genes.
+                println!("No saved genes file found. Starting with random genes.");
                 BoidGenes::new_random()
-            })
-        }
-        Err(_) => {
-            // If the file is not found, start with random genes.
-            println!("No saved genes file found. Starting with random genes.");
-            BoidGenes::new_random()
-        }
-    };
+            }
+        };
 
-    // Create the initial population.
-    let mut population = Vec::new();
-    // The first individual is the best one we know (either loaded or newly random).
-    population.push((initial_genes, 0.0));
-    // Fill the rest of the population with new random individuals.
-    for _ in 1..POPULATION_SIZE {
-        population.push((BoidGenes::new_random(), 0.0));
+        // Create the initial population.
+        let mut population = Vec::new();
+        // The first individual is the best one we know (either loaded or newly random).
+        population.push((initial_genes, 0.0));
+        // Fill the rest of the population with new random individuals.
+        for _ in 1..POPULATION_SIZE {
+            population.push((BoidGenes::new_random(), 0.0));
+        }
+
+        EvolutionManager {
+            population,
+            active_simulation: GameState::new(ctx, initial_genes),
+            current_generation: 1,
+            current_individual_index: 0,
+            timer: 0.0,
+            best_genes: initial_genes,
+            best_fitness_last_gen: 0.0,
+        }
     }
-    
-    EvolutionManager {
-        population,
-        active_simulation: GameState::new(ctx, initial_genes),
-        current_generation: 1,
-        current_individual_index: 0,
-        timer: 0.0,
-        best_genes: initial_genes,
-        best_fitness_last_gen: 0.0,
-    }
-}
 }
 
 impl EventHandler for EvolutionManager {
