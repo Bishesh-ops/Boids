@@ -1,3 +1,4 @@
+// Found out Rust is Very cool :)
 use ggez::conf::WindowSetup;
 use ggez::event::{self, EventHandler};
 use ggez::glam::Vec2;
@@ -5,12 +6,12 @@ use ggez::graphics::{self, Color, DrawMode};
 use ggez::{Context, ContextBuilder, GameResult};
 use rand::Rng;
 
-// --- Constants ---
+
 const TRAIL_LIFESPAN: f32 = 1.0;
 const POPULATION_SIZE: usize = 50;
 const SIMULATION_TIME: f32 = 10.0; // Seconds to test each generation member
 const MUTATION_RATE: f32 = 0.05;
-// --- Struct Definitions ---
+
 
 /// Represents the "DNA" of a flock, holding all tunable parameters.
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
@@ -589,10 +590,8 @@ impl EventHandler for EvolutionManager {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        // First, draw the active simulation as usual.
         self.active_simulation.draw(ctx)?;
 
-        // Now, draw the GA's status text on top.
         let text = graphics::Text::new(format!(
             "Generation: {}\nIndividual: {}/{}\nBest Fitness (last gen): {:.2}",
             self.current_generation,
@@ -615,19 +614,14 @@ impl EventHandler for EvolutionManager {
     }
 }
 
-// --- Main Function ---
-// In src/main.rs
-
 pub fn main() -> GameResult {
-    // 1. Build the context and event loop as usual.
-    //    We make `ctx` mutable so we can pass a mutable reference to it.
+    //     make `ctx` mutable so that able to pass a mutable reference to it.
     let (mut ctx, event_loop) = ContextBuilder::new("boids_evolution", "Gemini")
         .window_setup(WindowSetup::default().title("Boids Evolution"))
         .build()?;
 
-    // 2. Create the state manager, passing it the context.
+    // create the state manager, passing it the context.
     let state = EvolutionManager::new(&mut ctx);
-
-    // 3. Run the game loop with the context, event loop, and state.
+    
     event::run(ctx, event_loop, state)
 }
