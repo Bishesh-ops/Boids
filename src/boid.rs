@@ -1,7 +1,9 @@
 use ggez::glam::Vec2;
 use rand::Rng;
+use crate::neural_network::NeuralNetwork;
 
 /// Represents the "DNA" of a flock, holding all tunable parameters.
+/// This is the OLD rule-based genes, kept for backward compatibility.
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct BoidGenes {
     pub perception_radius: f32,
@@ -10,6 +12,20 @@ pub struct BoidGenes {
     pub separation_weight: f32,
     pub alignment_weight: f32,
     pub cohesion_weight: f32,
+}
+
+/// Neural network-based genes for boid behavior.
+/// Contains the neural network weights and physical parameters.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct NeuralBoidGenes {
+    /// The flattened neural network weights (158 values)
+    pub network_weights: Vec<f32>,
+    /// Maximum speed the boid can move
+    pub max_speed: f32,
+    /// Maximum steering force that can be applied
+    pub max_force: f32,
+    /// How far the boid can perceive neighbors
+    pub perception_radius: f32,
 }
 
 impl BoidGenes {
@@ -24,6 +40,26 @@ impl BoidGenes {
             alignment_weight: rng.random_range(0.5..2.5),
             cohesion_weight: rng.random_range(0.5..2.5),
         }
+    }
+}
+
+impl NeuralBoidGenes {
+    /// Creates a new set of neural genes with random values.
+    pub fn new_random() -> Self {
+        let mut rng = rand::rng();
+        let nn = NeuralNetwork::new_random();
+
+        NeuralBoidGenes {
+            network_weights: nn.to_weights(),
+            max_speed: rng.random_range(100.0..300.0),
+            max_force: rng.random_range(100.0..400.0),
+            perception_radius: rng.random_range(50.0..150.0),
+        }
+    }
+
+    /// Creates a neural network from these genes.
+    pub fn create_network(&self) -> NeuralNetwork {
+        NeuralNetwork::from_weights(&self.network_weights)
     }
 }
 

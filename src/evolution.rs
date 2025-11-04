@@ -183,12 +183,18 @@ impl event::EventHandler for EvolutionManager {
         let mut canvas = graphics::Canvas::from_frame(ctx, graphics::Color::BLACK);
         self.active_simulation.draw_to_canvas(ctx, &mut canvas)?;
 
+        let fitness_text = if self.current_generation == 1 && self.best_fitness_last_gen == 0.0 {
+            "Best Fitness: (evaluating...)".to_string()
+        } else {
+            format!("Best Fitness: {:.2}", self.best_fitness_last_gen)
+        };
+
         let text = graphics::Text::new(format!(
-            "Generation: {}\nIndividual: {}/{}\nBest Fitness (last gen): {:.2}",
+            "RULE-BASED EVOLUTION\nGeneration: {}\nIndividual: {}/{}\n{}",
             self.current_generation,
             self.current_individual_index + 1,
             POPULATION_SIZE,
-            self.best_fitness_last_gen
+            fitness_text
         ));
 
         canvas.draw(
