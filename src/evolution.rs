@@ -57,8 +57,9 @@ impl EvolutionManager {
 
     /// Creates the next generation of boids through selection, crossover, and mutation.
     pub fn evolve_new_generation(&mut self, ctx: &mut Context) {
+        // Sort by fitness in descending order (most negative = best)
         self.population
-            .sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+            .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
         self.best_genes = self.population[0].0;
         self.best_fitness_last_gen = self.population[0].1;
@@ -120,9 +121,30 @@ impl EvolutionManager {
                 },
             };
 
+            // Mutate all genes with bounds checking
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child_genes.perception_radius * rng.random_range(-0.1..0.1);
+                child_genes.perception_radius = (child_genes.perception_radius + mutation_amount).clamp(25.0, 150.0);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child_genes.max_speed * rng.random_range(-0.1..0.1);
+                child_genes.max_speed = (child_genes.max_speed + mutation_amount).clamp(100.0, 300.0);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child_genes.max_force * rng.random_range(-0.1..0.1);
+                child_genes.max_force = (child_genes.max_force + mutation_amount).clamp(100.0, 400.0);
+            }
             if rng.random::<f32>() < MUTATION_RATE {
                 let mutation_amount = child_genes.separation_weight * rng.random_range(-0.1..0.1);
-                child_genes.separation_weight += mutation_amount;
+                child_genes.separation_weight = (child_genes.separation_weight + mutation_amount).clamp(0.5, 2.5);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child_genes.alignment_weight * rng.random_range(-0.1..0.1);
+                child_genes.alignment_weight = (child_genes.alignment_weight + mutation_amount).clamp(0.5, 2.5);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child_genes.cohesion_weight * rng.random_range(-0.1..0.1);
+                child_genes.cohesion_weight = (child_genes.cohesion_weight + mutation_amount).clamp(0.5, 2.5);
             }
 
             new_population.push((child_genes, 0.0));
@@ -166,7 +188,7 @@ impl event::EventHandler for EvolutionManager {
             self.current_generation,
             self.current_individual_index + 1,
             POPULATION_SIZE,
-            self.best_genes.cohesion_weight
+            self.best_fitness_last_gen
         ));
 
         canvas.draw(
@@ -216,7 +238,8 @@ pub fn headless_main(generations: usize, population_size: usize) {
             );
         }
 
-        population.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        // Sort by fitness in descending order (most negative = best)
+        population.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
         let best = population[0].0;
         let best_score = population[0].1;
         println!("Generation {} best = {}", generation + 1, best_score);
@@ -266,8 +289,30 @@ pub fn headless_main(generations: usize, population_size: usize) {
                     p2.cohesion_weight
                 },
             };
+            // Mutate all genes with bounds checking
             if rng.random::<f32>() < MUTATION_RATE {
-                child.separation_weight += child.separation_weight * rng.random_range(-0.1..0.1);
+                let mutation_amount = child.perception_radius * rng.random_range(-0.1..0.1);
+                child.perception_radius = (child.perception_radius + mutation_amount).clamp(25.0, 150.0);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child.max_speed * rng.random_range(-0.1..0.1);
+                child.max_speed = (child.max_speed + mutation_amount).clamp(100.0, 300.0);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child.max_force * rng.random_range(-0.1..0.1);
+                child.max_force = (child.max_force + mutation_amount).clamp(100.0, 400.0);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child.separation_weight * rng.random_range(-0.1..0.1);
+                child.separation_weight = (child.separation_weight + mutation_amount).clamp(0.5, 2.5);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child.alignment_weight * rng.random_range(-0.1..0.1);
+                child.alignment_weight = (child.alignment_weight + mutation_amount).clamp(0.5, 2.5);
+            }
+            if rng.random::<f32>() < MUTATION_RATE {
+                let mutation_amount = child.cohesion_weight * rng.random_range(-0.1..0.1);
+                child.cohesion_weight = (child.cohesion_weight + mutation_amount).clamp(0.5, 2.5);
             }
             new_population.push((child, 0.0));
         }

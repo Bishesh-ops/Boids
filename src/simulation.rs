@@ -1,15 +1,18 @@
 use crate::boid::{Boid, BoidGenes, TrailPoint};
 use crate::quadtree::{Point, Quadtree, Rectangle};
 use ggez::glam::Vec2;
-use ggez::{Context, GameResult, graphics};
+use ggez::{graphics, Context, GameResult};
 
 const TRAIL_LIFESPAN: f32 = 1.0;
+const MAX_TRAIL_POINTS: usize = 10000; // Cap trail growth to prevent memory issues
 
 /// Manages the state of a single simulation instance.
 pub struct GameState {
     pub boids: Vec<Boid>,
     pub trails: Vec<TrailPoint>,
     pub genes: BoidGenes,
+    trail_mesh: Option<graphics::Mesh>,
+    boid_mesh: Option<graphics::Mesh>,
 }
 
 impl GameState {
@@ -20,10 +23,36 @@ impl GameState {
         for _ in 0..100 {
             boids.push(Boid::new(width, height));
         }
+
+        // Pre-create meshes for performance
+        let trail_mesh = graphics::Mesh::new_circle(
+            ctx,
+            graphics::DrawMode::fill(),
+            Vec2::ZERO,
+            2.0,
+            0.1,
+            graphics::Color::WHITE,
+        )
+        .ok();
+
+        let boid_mesh = graphics::Mesh::new_polygon(
+            ctx,
+            graphics::DrawMode::fill(),
+            &[
+                Vec2::new(0.0, -10.0),
+                Vec2::new(5.0, 10.0),
+                Vec2::new(-5.0, 10.0),
+            ],
+            graphics::Color::WHITE,
+        )
+        .ok();
+
         GameState {
             boids,
             trails: Vec::new(),
             genes,
+            trail_mesh,
+            boid_mesh,
         }
     }
 
@@ -37,6 +66,8 @@ impl GameState {
             boids,
             trails: Vec::new(),
             genes,
+            trail_mesh: None,
+            boid_mesh: None,
         }
     }
 
@@ -51,12 +82,14 @@ impl GameState {
         let dt = ctx.time.delta().as_secs_f32();
         let (width, height) = ctx.gfx.drawable_size();
 
-        // Update trails
+        // Update trails with cap to prevent unbounded growth
         for boid in &self.boids {
-            self.trails.push(TrailPoint {
-                position: boid.position,
-                lifespan: TRAIL_LIFESPAN,
-            });
+            if self.trails.len() < MAX_TRAIL_POINTS {
+                self.trails.push(TrailPoint {
+                    position: boid.position,
+                    lifespan: TRAIL_LIFESPAN,
+                });
+            }
         }
         for trail in &mut self.trails {
             trail.lifespan -= dt;
@@ -86,7 +119,8 @@ impl GameState {
                 h: self.genes.perception_radius,
             };
 
-            let mut potential_neighbors = Vec::new();
+            // Use pre-allocated capacity for potential performance benefit
+            let mut potential_neighbors = Vec::with_capacity(50);
             qtree.query(&range, &mut potential_neighbors);
 
             // Filter out the boid itself from the neighbor list using distance check.
@@ -160,12 +194,14 @@ impl GameState {
 
     /// Headless update step: same logic as `update` but driven by an external dt and sizes.
     pub fn update_headless(&mut self, dt: f32, width: f32, height: f32) {
-        // Update trails
+        // Update trails with cap to prevent unbounded growth
         for boid in &self.boids {
-            self.trails.push(TrailPoint {
-                position: boid.position,
-                lifespan: TRAIL_LIFESPAN,
-            });
+            if self.trails.len() < MAX_TRAIL_POINTS {
+                self.trails.push(TrailPoint {
+                    position: boid.position,
+                    lifespan: TRAIL_LIFESPAN,
+                });
+            }
         }
         for trail in &mut self.trails {
             trail.lifespan -= dt;
@@ -195,7 +231,8 @@ impl GameState {
                 h: self.genes.perception_radius,
             };
 
-            let mut potential_neighbors = Vec::new();
+            // Use pre-allocated capacity for potential performance benefit
+            let mut potential_neighbors = Vec::with_capacity(50);
             qtree.query(&range, &mut potential_neighbors);
 
             let neighbors: Vec<Point> = potential_neighbors
@@ -268,49 +305,62 @@ impl GameState {
         ctx: &mut Context,
         canvas: &mut graphics::Canvas,
     ) -> GameResult {
+        // Lazy initialize meshes if not already created (for compatibility)
+        if self.trail_mesh.is_none() {
+            self.trail_mesh = graphics::Mesh::new_circle(
+                ctx,
+                graphics::DrawMode::fill(),
+                Vec2::ZERO,
+                2.0,
+                0.1,
+                graphics::Color::WHITE,
+            )
+            .ok();
+        }
+        if self.boid_mesh.is_none() {
+            self.boid_mesh = graphics::Mesh::new_polygon(
+                ctx,
+                graphics::DrawMode::fill(),
+                &[
+                    Vec2::new(0.0, -10.0),
+                    Vec2::new(5.0, 10.0),
+                    Vec2::new(-5.0, 10.0),
+                ],
+                graphics::Color::WHITE,
+            )
+            .ok();
+        }
+
         // Draw the trails first, so they are behind the boids.
-        let trail_mesh = graphics::Mesh::new_circle(
-            ctx,
-            graphics::DrawMode::fill(),
-            Vec2::ZERO,
-            2.0,
-            0.1,
-            graphics::Color::WHITE,
-        )?;
-        for trail in &self.trails {
-            let alpha = trail.lifespan / TRAIL_LIFESPAN;
-            let color = graphics::Color::new(1.0, 1.0, 1.0, alpha * 0.5);
-            canvas.draw(
-                &trail_mesh,
-                graphics::DrawParam::new().dest(trail.position).color(color),
-            );
+        if let Some(trail_mesh) = &self.trail_mesh {
+            for trail in &self.trails {
+                let alpha = trail.lifespan / TRAIL_LIFESPAN;
+                let color = graphics::Color::new(1.0, 1.0, 1.0, alpha * 0.5);
+                canvas.draw(
+                    trail_mesh,
+                    graphics::DrawParam::new().dest(trail.position).color(color),
+                );
+            }
         }
 
         // Draw the boids as triangles.
-        let boid_mesh = graphics::Mesh::new_polygon(
-            ctx,
-            graphics::DrawMode::fill(),
-            &[
-                Vec2::new(0.0, -10.0),
-                Vec2::new(5.0, 10.0),
-                Vec2::new(-5.0, 10.0),
-            ],
-            graphics::Color::WHITE,
-        )?;
-        for boid in &self.boids {
-            let angle = boid.velocity.y.atan2(boid.velocity.x) + 90.0_f32.to_radians();
-            canvas.draw(
-                &boid_mesh,
-                graphics::DrawParam::new()
-                    .dest(boid.position)
-                    .rotation(angle),
-            );
+        if let Some(boid_mesh) = &self.boid_mesh {
+            for boid in &self.boids {
+                let angle = boid.velocity.y.atan2(boid.velocity.x) + 90.0_f32.to_radians();
+                canvas.draw(
+                    boid_mesh,
+                    graphics::DrawParam::new()
+                        .dest(boid.position)
+                        .rotation(angle),
+                );
+            }
         }
 
         Ok(())
     }
 
     /// Calculates a fitness score based on the flock's cohesion and separation.
+    /// Lower fitness is better (tight flocking with fewer collisions).
     pub fn calculate_fitness(&self) -> f32 {
         if self.boids.is_empty() {
             return 0.0;
@@ -325,10 +375,43 @@ impl GameState {
         }
         center_of_mass /= self.boids.len() as f32;
 
+        // Calculate average distance from center of mass
         for boid in &self.boids {
             total_distance_from_center += boid.position.distance(center_of_mass);
-            for other in &self.boids {
-                if boid.position != other.position && boid.position.distance(other.position) < 10.0
+        }
+
+        // Use quadtree for efficient collision detection
+        // Use a large boundary to encompass all boids (default window is 800x600)
+        let boundary = Rectangle {
+            x: 400.0,
+            y: 300.0,
+            w: 400.0,
+            h: 300.0,
+        };
+        let mut qtree = Quadtree::new(boundary, 4);
+
+        for boid in &self.boids {
+            qtree.insert(Point {
+                position: boid.position,
+                velocity: boid.velocity,
+            });
+        }
+
+        // Check for collisions using quadtree
+        for boid in &self.boids {
+            let collision_range = Rectangle {
+                x: boid.position.x,
+                y: boid.position.y,
+                w: 10.0,
+                h: 10.0,
+            };
+            let mut nearby = Vec::new();
+            qtree.query(&collision_range, &mut nearby);
+
+            for other in nearby {
+                // Exclude self and check collision distance
+                if boid.position.distance(other.position) > 0.0001
+                    && boid.position.distance(other.position) < 10.0
                 {
                     collision_count += 1;
                 }
@@ -336,6 +419,8 @@ impl GameState {
         }
 
         let avg_distance = total_distance_from_center / self.boids.len() as f32;
-        avg_distance + (collision_count as f32 * 10.0)
+        // Divide collision_count by 2 since each collision is counted twice (A->B and B->A)
+        // Negate to make lower values better (tight flocking, fewer collisions = better fitness)
+        -(avg_distance + ((collision_count / 2) as f32 * 10.0))
     }
 }
