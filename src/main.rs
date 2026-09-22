@@ -5,12 +5,12 @@ mod neural_network;
 mod quadtree;
 mod simulation;
 
-use ggez::conf::WindowSetup;
-use ggez::{ContextBuilder, GameResult, event};
+use ggez::conf::{WindowMode, WindowSetup};
+use ggez::{event, ContextBuilder, GameResult};
 use std::env;
 
-use crate::evolution::{EvolutionManager, headless_main};
-use crate::neural_evolution::{NeuralEvolutionManager, neural_headless_main};
+use crate::evolution::{headless_main, EvolutionManager};
+use crate::neural_evolution::{neural_headless_main, NeuralEvolutionManager};
 
 pub fn main() -> GameResult {
     // Check CLI flags
@@ -55,8 +55,18 @@ pub fn main() -> GameResult {
         return Ok(());
     }
 
+    if env::var_os("WINIT_UNIX_BACKEND").is_none()
+        && env::var_os("WAYLAND_DISPLAY").is_some()
+        && env::var_os("DISPLAY").is_some()
+    {
+        unsafe {
+            env::set_var("WINIT_UNIX_BACKEND", "x11");
+        }
+    }
+
     let (mut ctx, event_loop) = ContextBuilder::new("boids_evolution", "Gemini")
         .window_setup(WindowSetup::default().title("Boids Evolution"))
+        .window_mode(WindowMode::default().dimensions(2000.0, 1800.0))
         .build()?;
 
     if use_neural {
